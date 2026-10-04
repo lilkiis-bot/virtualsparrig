@@ -1,0 +1,39 @@
+name: Deploy OCTAGON to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check game rules
+        run: node --test tests/*.test.mjs
+      - name: Prepare pinned local assets
+        run: node tools/setup-assets.mjs
+      - name: Stage static application
+        run: |
+          mkdir -p _site
+          cp index.html style.css config.js favicon.svg .nojekyll _site/
+          cp -R src vendor _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
